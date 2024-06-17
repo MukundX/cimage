@@ -1,17 +1,23 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<form method="post" class="buttons">
-  <h3>Enter The Chat Room</h3>
-  <div>
-    <label>Name:</label>
-    <input type="text" placeholder="Pick a name!" name="name" value="{{ name }}" />
-  </div>
-  <button type="submit" name="join">Join Chat</button>
-  {% if error %}
-    <ul>
-      <li>{{ error }}</li>
-    </ul>
-  {% endif %}
-</form>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="content">
+        {% if error %}
+            <p>{{ error }}</p>
+        {% endif %}
+        <form method="post" class="admin-login">
+            <h3>Admin Login</h3>
+            <div>
+                <label>Password:</label>
+                <input type="password" placeholder="Enter admin password" name="password" />
+            </div>
+            <button type="submit">Login as Admin</button>
+        </form>
+    </div>
+</body>
+</html>
