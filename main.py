@@ -2,22 +2,19 @@ from flask import Flask, render_template, request, session, redirect, url_for
 from flask_socketio import join_room, leave_room, send, SocketIO
 import random
 from string import ascii_uppercase
+import os
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "hjhjsdahhds"
-socketio = SocketIO(app)
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "hjhjsdahhds")  # Use environment variable for SECRET_KEY
+socketio = SocketIO(app, logger=True, engineio_logger=True)
 
 rooms = {}
 
 def generate_unique_code(length):
     while True:
-        code = ""
-        for _ in range(length):
-            code += random.choice(ascii_uppercase)
-        
+        code = "".join(random.choice(ascii_uppercase) for _ in range(length))
         if code not in rooms:
             break
-    
     return code
 
 @app.route("/", methods=["POST", "GET"])
@@ -32,11 +29,11 @@ def home():
         if not name:
             return render_template("home.html", error="Please enter a name.", code=code, name=name)
 
-        if join != False and not code:
+        if join and not code:
             return render_template("home.html", error="Please enter a room code.", code=code, name=name)
         
         room = code
-        if create != False:
+        if create:
             room = generate_unique_code(4)
             rooms[room] = {"members": 0, "messages": []}
         elif code not in rooms:
@@ -71,7 +68,7 @@ def message(data):
     print(f"{session.get('name')} said: {data['data']}")
 
 @socketio.on("connect")
-def connect(auth):
+def connect():
     room = session.get("room")
     name = session.get("name")
     if not room or not name:
@@ -100,4 +97,4 @@ def disconnect():
     print(f"{name} has left the room {room}")
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
