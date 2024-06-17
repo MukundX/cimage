@@ -1,46 +1,24 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from flask_socketio import join_room, leave_room, send, SocketIO
-import random
-from string import ascii_uppercase
-import os
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "hjhjsdahhds")  # Use environment variable for SECRET_KEY
-socketio = SocketIO(app, logger=True, engineio_logger=True)
+app.config["SECRET_KEY"] = "hjhjsdahhds"
+socketio = SocketIO(app)
 
-rooms = {}
+default_room = "default"
+rooms = {
+    default_room: {"members": 0, "messages": []}
+}
 
-def generate_unique_code(length):
-    while True:
-        code = "".join(random.choice(ascii_uppercase) for _ in range(length))
-        if code not in rooms:
-            break
-    return code
-
-@app.route("/", methods=["POST", "GET"])
+@app.route("/", methods=["GET", "POST"])
 def home():
-    session.clear()
     if request.method == "POST":
         name = request.form.get("name")
-        code = request.form.get("code")
-        join = request.form.get("join", False)
-        create = request.form.get("create", False)
-
         if not name:
-            return render_template("home.html", error="Please enter a name.", code=code, name=name)
-
-        if join and not code:
-            return render_template("home.html", error="Please enter a room code.", code=code, name=name)
+            return render_template("home.html", error="Please enter a name.", name=name)
         
-        room = code
-        if create:
-            room = generate_unique_code(4)
-            rooms[room] = {"members": 0, "messages": []}
-        elif code not in rooms:
-            return render_template("home.html", error="Room does not exist.", code=code, name=name)
-        
-        session["room"] = room
         session["name"] = name
+        session["room"] = default_room
         return redirect(url_for("room"))
 
     return render_template("home.html")
@@ -48,7 +26,8 @@ def home():
 @app.route("/room")
 def room():
     room = session.get("room")
-    if room is None or session.get("name") is None or room not in rooms:
+    name = session.get("name")
+    if room is None or name is None or room not in rooms:
         return redirect(url_for("home"))
 
     return render_template("room.html", code=room, messages=rooms[room]["messages"])
@@ -68,7 +47,7 @@ def message(data):
     print(f"{session.get('name')} said: {data['data']}")
 
 @socketio.on("connect")
-def connect():
+def connect(auth):
     room = session.get("room")
     name = session.get("name")
     if not room or not name:
@@ -97,4 +76,4 @@ def disconnect():
     print(f"{name} has left the room {room}")
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    socketio.run(app, host='0.0.0.0', port=5000)
