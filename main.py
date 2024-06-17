@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from flask_socketio import join_room, leave_room, send, emit, SocketIO
-from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "hjhjsdahhds"
@@ -12,7 +11,6 @@ rooms = {
     default_room: {"members": 0, "messages": []}
 }
 
-# Admins set (empty initially)
 admins = set()
 
 def is_admin():
@@ -28,20 +26,20 @@ def home():
         else:
             return render_template("home.html", error="Incorrect password.")
 
-    return render_template("home.html")
+    return render_template("home.html", error=None)
 
-@app.route("/room")
+@app.route("/room", methods=["GET", "POST"])
 def room():
-    room = session.get("room")
+    room = default_room
     name = session.get("name")
-    if room is None or name is None or room not in rooms:
+    if name is None:
         return redirect(url_for("home"))
 
     return render_template("room.html", code=room, messages=rooms[room]["messages"], is_admin=is_admin())
 
 @socketio.on("message")
 def message(data):
-    room = session.get("room")
+    room = default_room
     if room not in rooms:
         return 
     
@@ -56,7 +54,7 @@ def message(data):
 
 @socketio.on("delete_message")
 def delete_message(data):
-    room = session.get("room")
+    room = default_room
     if not is_admin() or room not in rooms:
         return 
     
@@ -68,7 +66,7 @@ def delete_message(data):
 
 @socketio.on("connect")
 def connect(auth):
-    room = session.get("room")
+    room = default_room
     name = session.get("name")
     if not room or not name:
         return
@@ -83,7 +81,7 @@ def connect(auth):
 
 @socketio.on("disconnect")
 def disconnect():
-    room = session.get("room")
+    room = default_room
     name = session.get("name")
     leave_room(room)
 
